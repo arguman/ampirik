@@ -9,13 +9,6 @@ defmodule StrictArgument do
   For more information follow the link: https://en.wikipedia.org/wiki/Syllogism
   """
 
-  @doc """
-  Forms a premise based on major | minor category,
-  for given terms and type information.
-
-  Returns a map, consists of terms, type.
-
-  """
   defguard is_category(category)
     when category in [:major, :minor]
 
@@ -32,6 +25,18 @@ defmodule StrictArgument do
     and is_scope(scope)
     and is_pole(pole)
 
+
+  @todos """
+  * add premise types somehow. typespecs or maybe resolve as structs?
+  """
+
+  @doc """
+  Forms a premise based on major | minor category,
+  for given terms and type information.
+
+  Returns a map, consists of terms, type.
+
+  """
   def premise(category, term1, term2, scope, pole)
     when is_premise(category, term1, term2, scope, pole)
     do
