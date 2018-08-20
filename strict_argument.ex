@@ -52,6 +52,31 @@ defmodule StrictArgument do
 
   """
   def conclude(
+    %{
+      terms: [
+        {:middle, middle},
+        {:predicate, predicate}
+      ],
+      type: {:universal, :affirmative}
+    },
+    %{
+      terms: [
+        {:middle, middle},
+        {:subject, subject}
+      ],
+      type: {:universal, :affirmative}
+    }
+  ) do
+    %{
+      terms: [
+        {:subject, subject},
+        {:predicate, predicate}
+      ],
+      type: {:particular, :affirmative}
+    }
+  end
+
+  def conclude(
     %{predicate: predicate, middle: middle, type: major_type},
     %{subject: subject, middle: middle, type: minor_type}
   ) do
@@ -178,22 +203,28 @@ defmodule StrictArgumentTest do
   """
   test "conclude some websites are not informative" do
     major = %{
-      predicate: "informative",
-      middle: "useful",
+      terms: [
+        {:predicate, "informative"},
+        {:middle, "useful"}
+      ],
       type: {:universal, :affirmative},
     }
 
     minor = %{
-      subject: "website",
-      middle: "useful",
+      terms: [
+        {:subject, "website"},
+        {:middle, "useful"}
+      ],
       type: {:particular, :affirmative},
     }
 
     conclusion = StrictArgument.conclude(major, minor)
 
     assert conclusion == %{
-      subject: "website",
-      predicate: "informative",
+      terms: [
+        {:subject, "website"},
+        {:predicate, "informative"}
+      ],
       type: {:particular, :negative}
     }
   end
@@ -205,22 +236,28 @@ defmodule StrictArgumentTest do
   """
   test "conclude some rhombuses are rectangles" do
     major = %{
-      predicate: "rectangle",
-      middle: "squares",
+      terms: [
+        {:middle, "square"},
+        {:predicate, "rectangle"}
+      ],
       type: {:universal, :affirmative},
     }
 
     minor = %{
-      subject: "rhombuses",
-      middle: "squares",
+      terms: [
+        {:middle, "square"},
+        {:subject, "rhombuses"}
+      ],
       type: {:universal, :affirmative},
     }
 
     conclusion = StrictArgument.conclude(major, minor)
 
     assert conclusion == %{
-      subject: "rhombuses",
-      predicate: "rectangle",
+      terms: [
+        {:subject, "rhombuses"},
+        {:predicate, "rectangle"}
+      ],
       type: {:particular, :affirmative}
     }
   end
