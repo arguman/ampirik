@@ -28,11 +28,13 @@ defmodule StrictArgument do
   includes type as 2 arg tuple.
 
   """
-  def premise(:major, middle, predicate, type: {:universal, :affirmative}),
-    do: %{middle: middle, predicate: predicate, type: {:universal, :affirmative}}
+  def premise(:major, middle, predicate, type: {:universal, :affirmative}) do
+    %{middle: middle, predicate: predicate, type: {:universal, :affirmative}}
+  end
 
-  def premise(:minor, subject, middle, type: {:universal, :affirmative}),
-    do: %{subject: subject, middle: middle, type: {:universal, :affirmative}}
+  def premise(:minor, subject, middle, type: {:universal, :affirmative}) do
+    %{subject: subject, middle: middle, type: {:universal, :affirmative}}
+  end
 
   @doc """
   Forms a conclusion for given major and minor premises.
@@ -58,17 +60,45 @@ defmodule StrictArgument do
 
   defp do_conclude(
     subject, predicate,
-    {:universal, :affirmative}, {:universal, :affirmative}
-  ), do: %{subject: subject, predicate: predicate, type: {:universal, :affirmative}}
+    {:universal, :affirmative},
+    {:universal, :affirmative}
+  ) do
+    %{subject: subject, predicate: predicate, type: {:universal, :affirmative}}
+  end
+
+  defp do_conclude(
+    subject, predicate,
+    {:universal, :negative},
+    {:universal, :affirmative}
+  ) do
+    %{subject: subject, predicate: predicate, type: {:universal, :negative}}
+  end
+
+  defp do_conclude(
+    subject, predicate,
+    {:universal, :affirmative},
+    {:particular, :affirmative}
+  ) do
+    %{subject: subject, predicate: predicate, type: {:particular, :negative}}
+  end
+
+  defp do_conclude(
+    subject, predicate,
+    {:universal, :affirmative},
+    {:universal, :affirmative}
+  ) do
+    %{subject: subject, predicate: predicate, type: {:particular, :affirmative}}
+  end
+
 end
 
 defmodule StrictArgumentTest do
   use ExUnit.Case, async: true
 
   @barbara """
-  All men are mortal.
-  All greeks are men.
-  All greeks are mortal.
+    all men are mortal.
+    all greeks are men.
+  ∴ all greeks are mortal.
   """
 
   test "proposes a major premise" do
@@ -110,6 +140,88 @@ defmodule StrictArgumentTest do
       subject: "greek",
       predicate: "mortal",
       type: {:universal, :affirmative}
+    }
+  end
+
+  @celarent """
+    no birds can travel trough space.
+    all chickens are birds
+  ∴ no chickens can travel through space
+  """
+  test "conclude chickens-dont-travel-space'ness" do
+
+    major = %{
+      middle: "bird",
+      predicate: "travel trough space",
+      type: {:universal, :negative}
+    }
+
+    minor = %{
+      subject: "chicken",
+      middle: "bird",
+      type: {:universal, :affirmative}
+    }
+
+    conclusion = StrictArgument.conclude(major, minor)
+
+    assert conclusion == %{
+      subject: "chicken",
+      predicate: "travel trough space",
+      type: {:universal, :negative}
+    }
+  end
+
+  @baroco """
+    all informative things are useful
+    some websites are not useful
+  ∴ some websites are not informative
+  """
+  test "conclude some websites are not informative" do
+    major = %{
+      predicate: "informative",
+      middle: "useful",
+      type: {:universal, :affirmative},
+    }
+
+    minor = %{
+      subject: "website",
+      middle: "useful",
+      type: {:particular, :affirmative},
+    }
+
+    conclusion = StrictArgument.conclude(major, minor)
+
+    assert conclusion == %{
+      subject: "website",
+      predicate: "informative",
+      type: {:particular, :negative}
+    }
+  end
+
+  @darapti """
+    all squares are rectangles
+    all squares are rhombuses
+  ∴ some rhombuses are rectangles
+  """
+  test "conclude some rhombuses are rectangles" do
+    major = %{
+      predicate: "rectangle",
+      middle: "squares",
+      type: {:universal, :affirmative},
+    }
+
+    minor = %{
+      subject: "rhombuses",
+      middle: "squares",
+      type: {:universal, :affirmative},
+    }
+
+    conclusion = StrictArgument.conclude(major, minor)
+
+    assert conclusion == %{
+      subject: "rhombuses",
+      predicate: "rectangle",
+      type: {:particular, :affirmative}
     }
   end
 end
