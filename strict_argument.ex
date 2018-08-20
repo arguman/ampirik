@@ -10,56 +10,32 @@ defmodule StrictArgument do
   """
 
   @doc """
-  Forms a premise for given category, and related arguments.
-
-  ### Arguments
-
-  * category: can be either `:major` or `:minor`.
-    `:major` dictates a middle, and predicate in order.
-    `:minor` dictates a subject and middle in order.
-  * arg1: can behave as either `middle` or `subject` based on given category.
-  * arg2: can behave as either `predicate` or `middle` based on given category.
-  * type: 2 symbol based tuple defining characteristics of the premise.
-    `{:universal, :affirmative}`
-
-  ### Returns
-
-  A major or minor premise given related subject, middle or predicate,
-  includes type as 2 arg tuple.
-
-  """
-  @types [
-    {:universal, :affirmative},
-    {:universal, :negative},
-    {:particular, :affirmative},
-    {:particular, :negative}
-  ]
-
-  @major_terms [:predicate, :middle]
-  @minor_terms [:subject, :middle]
-
-  defguard is_type(type) when type in @types
-  defguard is_major_term(term) when term in @major_terms
-  defguard is_minor_term(term) when term in @minor_terms
-
-
-  @doc """
   Forms a premise based on major | minor category,
   for given terms and type information.
 
   Returns a map, consists of terms, type.
 
   """
-  def premise(:major, [{term1, _}, {term2, _}] = terms, type)
-  when is_major_term(term1) and is_major_term(term2) and is_type(type)
-  do
-    %{terms: terms, type: type}
-  end
+  defguard is_category(category)
+    when category in [:major, :minor]
 
-  def premise(:minor, [{term1, _}, {term2, _}] = terms, type)
-  when is_minor_term(term1) and is_minor_term(term2) and is_type(type)
-  do
-    %{terms: terms, type: type}
+  defguard is_scope(scope)
+    when scope in [:universal, :particular]
+
+  defguard is_pole(pole)
+    when pole in [:affirmative, :negative]
+
+  defguard is_premise(category, term1, term2, scope, pole)
+    when is_category(category)
+    and is_binary(term1)
+    and is_binary(term2)
+    and is_scope(scope)
+    and is_pole(pole)
+
+  def premise(category, term1, term2, scope, pole)
+    when is_premise(category, term1, term2, scope, pole)
+    do
+    %{__category__: category, terms: [term1, term2], type: {scope, pole}}
   end
 
   @doc """
@@ -70,49 +46,55 @@ defmodule StrictArgument do
   """
   def conclude(
     %{
-      terms: [
-        {:middle, middle},
-        {:predicate, predicate}
-      ],
+      __category__: :major,
+      terms: [middle, predicate],
       type: {:universal, :affirmative}
     },
     %{
-      terms: [
-        {:middle, middle},
-        {:subject, subject}
-      ],
+      __category__: :minor,
+      terms: [subject, middle],
       type: {:universal, :affirmative}
     }
   ) do
     %{
-      terms: [
-        {:subject, subject},
-        {:predicate, predicate}
-      ],
-      type: {:particular, :affirmative}
+      terms: [subject: subject, predicate: predicate],
+      type: {:universal, :affirmative}
     }
   end
 
   def conclude(
     %{
-      terms: [
-        {:predicate, predicate},
-        {:middle, middle}
-      ],
+      __category__: :major,
+      terms: [middle, predicate],
+      type: {:universal, :negative}
+    },
+    %{
+      __category__: :minor,
+      terms: [subject, middle],
+      type: {:universal, :affirmative}
+    }
+  ) do
+    %{
+      terms: [subject: subject, predicate: predicate],
+      type: {:universal, :negative}
+    }
+  end
+
+  def conclude(
+    %{
+      __category__: :major,
+      terms: [predicate, middle],
       type: {:universal, :affirmative}
     },
     %{
-      terms: [
-        {:subject, subject},
-        {:middle, middle},
-      ],
-      type: {:particular, :affirmative}
+      __category__: :minor,
+      terms: [subject, middle],
+      type: {:particular, :negative}
     }
   ) do
     %{
       terms: [
-        {:subject, subject},
-        {:predicate, predicate}
+        subject: subject, predicate: predicate
       ],
       type: {:particular, :negative}
     }
@@ -120,51 +102,21 @@ defmodule StrictArgument do
 
   def conclude(
     %{
-      terms: [
-        {:middle, middle},
-        {:predicate, predicate}
-      ],
-      type: {:universal, :negative}
+      __category__: :major,
+      terms: [middle, predicate],
+      type: {:universal, :affirmative}
     },
     %{
-      terms: [
-        {:subject, subject},
-        {:middle, middle},
-      ],
+      __category__: :minor,
+      terms: [middle, subject],
       type: {:universal, :affirmative}
     }
   ) do
     %{
       terms: [
-        {:subject, subject},
-        {:predicate, predicate}
+        subject: subject, predicate: predicate
       ],
-      type: {:universal, :negative}
-    }
-  end
-
-  def conclude(
-    %{
-      terms: [
-        {:middle, middle},
-        {:predicate, predicate}
-      ],
-      type: {:universal, :affirmative}
-    },
-    %{
-      terms: [
-        {:subject, subject},
-        {:middle, middle}
-      ],
-      type: {:universal, :affirmative}
-    }
-  ) do
-    %{
-      terms: [
-        subject: subject,
-        predicate: predicate
-      ],
-      type: {:universal, :affirmative}
+      type: {:particular, :affirmative}
     }
   end
 end
@@ -180,49 +132,36 @@ defmodule StrictArgumentTest do
 
   test "proposes a major premise" do
     major = StrictArgument.premise(
-      :major,
-      [middle: "man", predicate: "mortal"],
-      {:universal, :affirmative}
+      :major, "man", "mortal", :universal, :affirmative
     )
 
     assert major == %{
-      terms: [middle: "man", predicate: "mortal"],
+      __category__: :major,
+      terms: ["man", "mortal"],
       type: {:universal, :affirmative}
     }
   end
 
   test "proposes a minor premise" do
     minor = StrictArgument.premise(
-      :minor,
-      [subject: "greek", middle: "man"],
-      {:universal, :affirmative}
+      :minor, "greek", "man", :universal, :affirmative
     )
 
     assert minor == %{
-      terms: [
-        subject: "greek",
-        middle: "man"
-      ],
+      __category__: :minor,
+      terms: ["greek", "man"],
       type: {:universal, :affirmative}
     }
   end
 
-  test "concludes all greeks are mortal" do
-    major = %{
-      terms: [
-        middle: "man",
-        predicate: "mortal"
-      ],
-      type: {:universal, :affirmative}
-    }
+  test "concludes all greeks are mortal following @barbara" do
+    major = StrictArgument.premise(
+      :major, "man", "mortal", :universal, :affirmative
+    )
 
-    minor = %{
-      terms: [
-        subject: "greek",
-        middle: "man"
-      ],
-      type: {:universal, :affirmative}
-    }
+    minor = StrictArgument.premise(
+      :minor, "greek", "man", :universal, :affirmative
+    )
 
     conclusion = StrictArgument.conclude(major, minor)
 
@@ -236,99 +175,74 @@ defmodule StrictArgumentTest do
   end
 
   @celarent """
-    no birds can travel trough space.
-    all chickens are birds
-  ∴ no chickens can travel through space
+    No birds can travel through space.
+    All chickens are birds.
+  ∴ No chickens can travel through space.
   """
-  test "conclude chickens-dont-travel-space'ness" do
+  test "conclude no chickens can travel through space following @celarent" do
+    major = StrictArgument.premise(
+      :major, "bird", "travel through space", :universal, :negative
+    )
 
-    major = %{
-      terms: [
-        middle: "bird",
-        predicate: "travel trough space"
-      ],
-      type: {:universal, :negative}
-    }
-
-    minor = %{
-      terms: [
-        subject: "chicken",
-        middle: "bird"
-      ],
-      type: {:universal, :affirmative}
-    }
+    minor = StrictArgument.premise(
+      :minor, "chicken", "bird", :universal, :affirmative
+    )
 
     conclusion = StrictArgument.conclude(major, minor)
 
     assert conclusion == %{
       terms: [
         {:subject, "chicken"},
-        {:predicate, "travel trough space"}
+        {:predicate, "travel through space"}
       ],
       type: {:universal, :negative}
     }
   end
 
   @baroco """
-    all informative things are useful
-    some websites are not useful
-  ∴ some websites are not informative
+    All informative things are useful.
+    Some websites are not useful.
+  ∴ Some websites are not informative things.
   """
-  test "conclude some websites are not informative" do
-    major = %{
-      terms: [
-        {:predicate, "informative"},
-        {:middle, "useful"}
-      ],
-      type: {:universal, :affirmative},
-    }
+  test "conclude some websites are not informative following baroco" do
+    major = StrictArgument.premise(
+      :major, "informative thing", "useful", :universal, :affirmative
+    )
 
-    minor = %{
-      terms: [
-        {:subject, "website"},
-        {:middle, "useful"}
-      ],
-      type: {:particular, :affirmative},
-    }
+    minor = StrictArgument.premise(
+      :minor, "website", "useful", :particular, :negative
+    )
 
     conclusion = StrictArgument.conclude(major, minor)
 
     assert conclusion == %{
       terms: [
         {:subject, "website"},
-        {:predicate, "informative"}
+        {:predicate, "informative thing"}
       ],
       type: {:particular, :negative}
     }
   end
 
   @darapti """
-    all squares are rectangles
-    all squares are rhombuses
-  ∴ some rhombuses are rectangles
+    All squares are rectangles.
+    All squares are rhombuses.
+  ∴ Some rhombuses are rectangles.
   """
-  test "conclude some rhombuses are rectangles" do
-    major = %{
-      terms: [
-        {:middle, "square"},
-        {:predicate, "rectangle"}
-      ],
-      type: {:universal, :affirmative},
-    }
+  test "conclude some rhombuses are rectangles following darapti" do
+    major = StrictArgument.premise(
+      :major, "square", "rectangle", :universal, :affirmative
+    )
 
-    minor = %{
-      terms: [
-        {:middle, "square"},
-        {:subject, "rhombuses"}
-      ],
-      type: {:universal, :affirmative},
-    }
+    minor = StrictArgument.premise(
+      :minor, "square", "rhombuse", :universal, :affirmative
+    )
 
     conclusion = StrictArgument.conclude(major, minor)
 
     assert conclusion == %{
       terms: [
-        {:subject, "rhombuses"},
+        {:subject, "rhombuse"},
         {:predicate, "rectangle"}
       ],
       type: {:particular, :affirmative}
