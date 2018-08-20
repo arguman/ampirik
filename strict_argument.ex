@@ -125,16 +125,35 @@ defmodule StrictArgument do
       type: {:universal, :negative}
     }
   end
+
+  def conclude(
+    %{
+      terms: [
+        {:middle, middle},
+        {:predicate, predicate}
+      ],
+      type: {:universal, :affirmative}
+    },
+    %{
+      terms: [
+        {:subject, subject},
+        {:middle, middle}
+      ],
+      type: {:universal, :affirmative}
+    }
+  ) do
+    %{
+      terms: [
+        subject: subject,
+        predicate: predicate
+      ],
+      type: {:universal, :affirmative}
+    }
+  end
 end
 
 defmodule StrictArgumentTest do
   use ExUnit.Case, async: true
-
-  # @barbara """
-  #   all men are mortal.
-  #   all greeks are men.
-  # ∴ all greeks are mortal.
-  # """
 
   # test "proposes a major premise" do
   #   major = StrictArgument.premise(:major, "man", "mortal", type: {:universal, :affirmative})
@@ -156,27 +175,39 @@ defmodule StrictArgumentTest do
   #   }
   # end
 
-  # test "concludes universal affirmative" do
-  #   major = %{
-  #     middle: "man",
-  #     predicate: "mortal",
-  #     type: {:universal, :affirmative}
-  #   }
+  @barbara """
+    all men are mortal.
+    all greeks are men.
+  ∴ all greeks are mortal.
+  """
 
-  #   minor = %{
-  #     subject: "greek",
-  #     middle: "man",
-  #     type: {:universal, :affirmative}
-  #   }
+  test "concludes all greeks are mortal" do
+    major = %{
+      terms: [
+        middle: "man",
+        predicate: "mortal"
+      ],
+      type: {:universal, :affirmative}
+    }
 
-  #   conclusion = StrictArgument.conclude(major, minor)
+    minor = %{
+      terms: [
+        subject: "greek",
+        middle: "man"
+      ],
+      type: {:universal, :affirmative}
+    }
 
-  #   assert conclusion == %{
-  #     subject: "greek",
-  #     predicate: "mortal",
-  #     type: {:universal, :affirmative}
-  #   }
-  # end
+    conclusion = StrictArgument.conclude(major, minor)
+
+    assert conclusion == %{
+      terms: [
+        subject: "greek",
+        predicate: "mortal"
+      ],
+      type: {:universal, :affirmative}
+    }
+  end
 
   @celarent """
     no birds can travel trough space.
