@@ -101,7 +101,30 @@ defmodule StrictArgument do
     }
   end
 
-
+  def conclude(
+    %{
+      terms: [
+        {:middle, middle},
+        {:predicate, predicate}
+      ],
+      type: {:universal, :negative}
+    },
+    %{
+      terms: [
+        {:subject, subject},
+        {:middle, middle},
+      ],
+      type: {:universal, :affirmative}
+    }
+  ) do
+    %{
+      terms: [
+        {:subject, subject},
+        {:predicate, predicate}
+      ],
+      type: {:universal, :negative}
+    }
+  end
 end
 
 defmodule StrictArgumentTest do
@@ -155,33 +178,39 @@ defmodule StrictArgumentTest do
   #   }
   # end
 
-  # @celarent """
-  #   no birds can travel trough space.
-  #   all chickens are birds
-  # ∴ no chickens can travel through space
-  # """
-  # test "conclude chickens-dont-travel-space'ness" do
+  @celarent """
+    no birds can travel trough space.
+    all chickens are birds
+  ∴ no chickens can travel through space
+  """
+  test "conclude chickens-dont-travel-space'ness" do
 
-  #   major = %{
-  #     middle: "bird",
-  #     predicate: "travel trough space",
-  #     type: {:universal, :negative}
-  #   }
+    major = %{
+      terms: [
+        middle: "bird",
+        predicate: "travel trough space"
+      ],
+      type: {:universal, :negative}
+    }
 
-  #   minor = %{
-  #     subject: "chicken",
-  #     middle: "bird",
-  #     type: {:universal, :affirmative}
-  #   }
+    minor = %{
+      terms: [
+        subject: "chicken",
+        middle: "bird"
+      ],
+      type: {:universal, :affirmative}
+    }
 
-  #   conclusion = StrictArgument.conclude(major, minor)
+    conclusion = StrictArgument.conclude(major, minor)
 
-  #   assert conclusion == %{
-  #     subject: "chicken",
-  #     predicate: "travel trough space",
-  #     type: {:universal, :negative}
-  #   }
-  # end
+    assert conclusion == %{
+      terms: [
+        {:subject, "chicken"},
+        {:predicate, "travel trough space"}
+      ],
+      type: {:universal, :negative}
+    }
+  end
 
   @baroco """
     all informative things are useful
