@@ -28,27 +28,44 @@ defmodule StrictArgument do
   includes type as 2 arg tuple.
 
   """
-  def premise(:major, middle, predicate, type: {:universal, :affirmative}) do
-    %{middle: middle, predicate: predicate, type: {:universal, :affirmative}}
+  @types [
+    {:universal, :affirmative},
+    {:universal, :negative},
+    {:particular, :affirmative},
+    {:particular, :negative}
+  ]
+
+  @major_terms [:predicate, :middle]
+  @minor_terms [:subject, :middle]
+
+  defguard is_type(type) when type in @types
+  defguard is_major_term(term) when term in @major_terms
+  defguard is_minor_term(term) when term in @minor_terms
+
+
+  @doc """
+  Forms a premise based on major | minor category,
+  for given terms and type information.
+
+  Returns a map, consists of terms, type.
+
+  """
+  def premise(:major, [{term1, _}, {term2, _}] = terms, type)
+  when is_major_term(term1) and is_major_term(term2) and is_type(type)
+  do
+    %{terms: terms, type: type}
   end
 
-  def premise(:minor, subject, middle, type: {:universal, :affirmative}) do
-    %{subject: subject, middle: middle, type: {:universal, :affirmative}}
+  def premise(:minor, [{term1, _}, {term2, _}] = terms, type)
+  when is_minor_term(term1) and is_minor_term(term2) and is_type(type)
+  do
+    %{terms: terms, type: type}
   end
 
   @doc """
   Forms a conclusion for given major and minor premises.
 
-  ### Arguments
-
-  * major: major premise that consists of a middle and a predicate term.
-    `%{middle: "", predicate: "", type: {:universal, :affirmative}}`
-  * minor: minor premise that consists of a subject and a middle term.
-    `%{subject: "", middle: "", type: {:universal, :affirmative}}`
-
-  ### Returns
-
-  A conclusion consists o subject, predicate and type.
+  Returns a map, consists of o subject, predicate and type.
 
   """
   def conclude(
@@ -155,31 +172,40 @@ end
 defmodule StrictArgumentTest do
   use ExUnit.Case, async: true
 
-  # test "proposes a major premise" do
-  #   major = StrictArgument.premise(:major, "man", "mortal", type: {:universal, :affirmative})
-
-  #   assert major == %{
-  #     middle: "man",
-  #     predicate: "mortal",
-  #     type: {:universal, :affirmative}
-  #   }
-  # end
-
-  # test "proposes a minor premise" do
-  #   minor = StrictArgument.premise(:minor, "greek", "man", type: {:universal, :affirmative})
-
-  #   assert minor == %{
-  #     subject: "greek",
-  #     middle: "man",
-  #     type: {:universal, :affirmative}
-  #   }
-  # end
-
   @barbara """
     all men are mortal.
     all greeks are men.
   ∴ all greeks are mortal.
   """
+
+  test "proposes a major premise" do
+    major = StrictArgument.premise(
+      :major,
+      [middle: "man", predicate: "mortal"],
+      {:universal, :affirmative}
+    )
+
+    assert major == %{
+      terms: [middle: "man", predicate: "mortal"],
+      type: {:universal, :affirmative}
+    }
+  end
+
+  test "proposes a minor premise" do
+    minor = StrictArgument.premise(
+      :minor,
+      [subject: "greek", middle: "man"],
+      {:universal, :affirmative}
+    )
+
+    assert minor == %{
+      terms: [
+        subject: "greek",
+        middle: "man"
+      ],
+      type: {:universal, :affirmative}
+    }
+  end
 
   test "concludes all greeks are mortal" do
     major = %{
